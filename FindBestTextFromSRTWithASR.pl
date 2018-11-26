@@ -9,6 +9,7 @@ use Try::Tiny;
 use Audio::Wav;
 use Word2vec::Word2vec;
 use Search::Elasticsearch;
+use script::yankt;
 
 if(scalar(@ARGV) != 3)
 {
@@ -71,19 +72,18 @@ sub dowork
 		my $info = $json->{info};
 		my $wavs = $json->{subwav};
 		my $url = $json->{url};
+		my $filename = $json->{filename};
 		
 		foreach my $wav (@$wavs)
 		{
 			my $final;
 
+			#call inner english asr engine
 			my $inner_asr_res = getAsrText('inner',$wav);
 			$inner_asr_res =~ s/^\s+|\s+$//g;
 
 			if($inner_asr_res ne 'null' && $inner_asr_res ne 'NULL')
 			{
-				my $baidu_asr_res = getAsrText('baidu',$wav);
-
-				my $baidu_result = getSimilarity($baidu_asr_res,$info,$w2v);
 				my $inner_result = getSimilarity($inner_asr_res,$info,$w2v);
 				my $wavlength  = qx(perl script/getWavLength.pl $wav);
 
@@ -91,75 +91,27 @@ sub dowork
 				$final->{url} = $url;
 				$final->{length} = $wavlength;
 
-				$final->{baidu_asr_text} = $baidu_asr_res;
 				$final->{inner_asr_text} = $inner_asr_res;
-			
-				$final->{baidu_ref_text} = $baidu_result->{ref};
 				$final->{inner_ref_text} = $inner_result->{ref};
-
-				$final->{baidu_ref_similarity} = $baidu_result->{similarity};
 				$final->{inner_ref_similarity} = $inner_result->{similarity};
 
-				#print 
-				print "Process audio file : ".$wav."\n"."$wav 's baidu-asr text : ".$baidu_asr_res."\n"."$wav 's baidu-ref text : ".$baidu_result->{ref}."\n";
+				#print
 				print "Process audio file : ".$wav."\n"."$wav 's inner-asr text : ".$inner_asr_res."\n"."$wav 's inner-ref text : ".$inner_result->{ref}."\n";
 				print $jsonparser->encode($final)."\n\n";
 
-				#insert mysql 
-				#insertMysqlDB($wav,$jsonparser->encode($final));
-
 				#insert Elastic
-				insertElasticDB($es,$url,$wav,$info,$wavlength,$final->{baidu_ref_text},$final->{baidu_asr_text},$final->{baidu_ref_similarity},$final->{inner_ref_text},$final->{inner_asr_text},$final->{inner_ref_similarity},"","","",0,0);
+				yankt::insertandupdate($wav,$filename,$url,$info,$wavlength,-1,
+								$final->{inner_asr_text},$final->{inner_ref_text},$final->{inner_ref_similarity}, #inner asr server
+								"","",0, #second
+								"","",0, #third
+								"","",0, #forth 
+								0,"","", #reserved
+								'voa-special');  
 			}
 
+			#call nuance english asr engine
 		}
 	}
-}
-
-sub insertElasticDB
-{
-	my $es = shift;
-	my $url = shift;
-   	my $wavname = shift;
-   	my $info = shift;
-   	my $length = shift;
-
- 	my $baidu_ref_text = shift;
- 	my $baidu_asr_text = shift;
-	my $baidu_ref_similarity = shift;
-
-	my $inner_ref_text = shift;
-   	my $inner_asr_text = shift;
-	my $inner_ref_similarity = shift;
-    
-	my $reserved_ref_text = shift;
-	my $reserved_asr_text = shift;
-	my $reserved_ref_similarity = shift;
-
-	my $before_snr = shift;
-	my $after_snr = shift;
-	my $index = "callserv_data_english_vadnn_".$ARGV[2];
-
-	#$id = $id + 1;
-	$es->index(index => "$index",
-      		type  =>  "data",
-      		#id  =>  $id,
-      		body  => {url => "$url",
-			wavname => "$wavname",
-			info => "$info",
-			length => $length,
-			baidu_ref_text => "$baidu_ref_text",
-			baidu_asr_text => "$baidu_asr_text",
-			baidu_ref_similarity => $baidu_ref_similarity,
-			inner_ref_text => "$inner_ref_text",
-			inner_asr_text => "$inner_asr_text",
-			inner_ref_similarity => $inner_ref_similarity,
-			reserved_ref_text => "$reserved_ref_text",
-			reserved_asr_text => "$reserved_asr_text",
-			reserved_ref_similarity => $reserved_ref_similarity,
-			before_snr => $before_snr,
-			after_snr => $after_snr}
-	);
 }
 
 sub getSimilarity
@@ -174,8 +126,8 @@ sub getSimilarity
 
 	$asr_res =~ s/^\s+|\s+$//g;
 	my $asr_res_nums = split(/\s+/,$asr_res);
-	my $max = int($asr_res_nums * 1.1);
-	my $min = int($asr_res_nums * 0.9);
+	my $max = int($asr_res_nums * 1.12);
+	my $min = int($asr_res_nums * 0.88);
 
 	if($min < 1)
 	{
@@ -218,30 +170,6 @@ sub getAsrText
 	}
 	my $call_asr = qx(python $asr_engine $wav);
 	return preProcessInfo($call_asr);
-}
-
-sub insertMysqlDB
-{
-	my $wav = shift;
-	my $final_res = shift;
-
-	my $time = strftime("%Y-%m-%d %H:%M:%S",localtime());
-	try
-	{
-		my $connection = "DBI:mysql:database=crawl_data;host=127.0.0.1";
-		my $dbh = DBI->connect($connection,'root','123456') || die($DBI::errstr);
-
-		my $sql = $dbh->prepare("replace into tab_51en_align_data values (?,?,?)");
-		$sql->execute($wav,qq/$final_res/,$time);
-		
-		$dbh->do('set names utf8;');
-		$dbh->{mysql_auto_reconnect} = 1;
-		$dbh->disconnect();
-	}
-	catch
-	{
-		print "Insert mysql error!\n";
-	};
 }
 
 sub getSubString
