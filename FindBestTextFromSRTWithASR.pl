@@ -11,9 +11,9 @@ use Word2vec::Word2vec;
 use Search::Elasticsearch;
 use script::yankt;
 
-if(scalar(@ARGV) != 3)
+if(scalar(@ARGV) != 2)
 {
-	print "Usage : perl FindBestTextFromSRTWithASR.pl input threadnum index\n";		
+	print "Usage : perl FindBestTextFromSRTWithASR.pl input threadnum\n";		
 	exit;
 }
 

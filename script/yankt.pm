@@ -3,20 +3,11 @@
 package yankt;
 
 use strict;
-use JSON;
 use POSIX;
 use Try::Tiny;
 use Search::Elasticsearch;
 
 my $index = "callserv_data_english";
-
-&insertandupdate('/home/yankt/test/test.wav',"","","",0,0,
-		"","",1,
-		"","",0,
-		"","",0,
-		"","",0,
-		0,"","",'yankt'
-		);
 
 sub insertandupdate 
 {
