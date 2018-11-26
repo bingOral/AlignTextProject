@@ -3,7 +3,7 @@
 
 import sys
 
-fop = open('/home/yankt/work/2018-11-08/ProcessText/rec_out.txt','r')
+fop = open('/home/yankt/work/git/AlignTextProject/data/rec_out_all.txt','r')
 
 dict = {}
 for line in fop:
