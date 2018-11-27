@@ -77,39 +77,41 @@ sub dowork
 		foreach my $wav (@$wavs)
 		{
 			my $final;
-
-			#call inner english asr engine
-			my $inner_asr_res = getAsrText('inner',$wav);
+			my $asr_res = getAsrText('inner',$wav);
 			$inner_asr_res =~ s/^\s+|\s+$//g;
 
-			if($inner_asr_res ne 'null' && $inner_asr_res ne 'NULL')
+			if($asr_res ne 'null' && $asr_res ne 'NULL')
 			{
-				my $inner_result = getSimilarity($inner_asr_res,$info,$w2v);
-				my $wavlength  = qx(perl script/getWavLength.pl $wav);
+				my $results = $e->search(index => 'callserv_data_english',body => {query => {match => {wavname => $wav}}});
+				my $flag = $results->{hits}->{total};
 
-				$final->{wav} = $wav;
-				$final->{url} = $url;
-				$final->{length} = $wavlength;
+				if($flag == 0)
+				{
+					my $result = getSimilarity($asr_res,$info,$w2v);
+					my $wavlength  = qx(perl script/getWavLength.pl $wav);
 
-				$final->{inner_asr_text} = $inner_asr_res;
-				$final->{inner_ref_text} = $inner_result->{ref};
-				$final->{inner_ref_similarity} = $inner_result->{similarity};
+					$final->{wav} = $wav;
+					$final->{url} = $url;
+					$final->{length} = $wavlength;
 
-				#print
-				print "Process audio file : ".$wav."\n"."$wav 's inner-asr text : ".$inner_asr_res."\n"."$wav 's inner-ref text : ".$inner_result->{ref}."\n";
-				print $jsonparser->encode($final)."\n\n";
+					$final->{asr_text} = $asr_res;
+					$final->{ref_text} = $result->{ref};
+					$final->{text_similarity} = $result->{similarity};
 
-				#insert Elastic
-				yankt::insertandupdate($wav,$filename,$url,$info,$wavlength,-1,
-								$final->{inner_asr_text},$final->{inner_ref_text},$final->{inner_ref_similarity}, #inner asr server
-								"","",0, #second
-								"","",0, #third
-								"","",0, #forth 
-								0,"","", #reserved
-								'voa-special');  
+					#print
+					print "Process audio file : ".$wav."\n"."$wav 's asr text : ".$asr_res."\n"."$wav 's ref text : ".$result->{ref}."\n";
+					print $jsonparser->encode($final)."\n\n";
+
+					#insert Elastic
+					yankt::insertandupdate($wav,$filename,$url,$info,$wavlength,-1,
+									$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
+									"","",0, #second
+									"","",0, #third
+									"","",0, #forth
+									0,"","", #reserved
+									'voa-special');#flag
+				}
 			}
-
-			#call nuance english asr engine
 		}
 	}
 }
@@ -126,8 +128,8 @@ sub getSimilarity
 
 	$asr_res =~ s/^\s+|\s+$//g;
 	my $asr_res_nums = split(/\s+/,$asr_res);
-	my $max = int($asr_res_nums * 1.12);
-	my $min = int($asr_res_nums * 0.88);
+	my $max = int($asr_res_nums * 1.1);
+	my $min = int($asr_res_nums * 0.9);
 
 	if($min < 1)
 	{

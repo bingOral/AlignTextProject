@@ -4,12 +4,11 @@ package yankt;
 
 use strict;
 use POSIX;
-use Try::Tiny;
 use Search::Elasticsearch;
 
 my $index = "callserv_data_english";
 
-sub insertandupdate 
+sub insertandupdate
 {
 	my $es = Search::Elasticsearch->new(nodes=>['localhost:9200'], cxn_pool => 'Sniff');
 	
@@ -37,7 +36,10 @@ sub insertandupdate
 	my $flag = shift;
 	my $time = strftime("%Y-%m-%d %H:%M:%S",localtime());
 		
-	try
+	my $results = $e->search(index => 'callserv_data_english', body => {query => {match => {wavname => $wavname}}});
+	my $flag = $results->{hits}->{total};
+
+	if($flag > 0)
 	{	
 		my $doc = $es->get(
 			index   => $index,
@@ -74,7 +76,7 @@ sub insertandupdate
 				$forth_asr_text,$forth_align_text,$forth_text_similarity,
 				$first_reserved,$second_reserved,$third_reserved,$flag,$time);
 	}
-	catch
+	else
 	{
 		insert($es,$wavname,$origin_audio,$url,$info,$length,$oral_score,
 				$first_asr_text,$first_align_text,$first_text_similarity,
@@ -82,7 +84,7 @@ sub insertandupdate
 				$third_asr_text,$third_align_text,$third_text_similarity,
 				$forth_asr_text,$forth_align_text,$forth_text_similarity,
 				$first_reserved,$second_reserved,$third_reserved,$flag,$time);	
-	};
+	}
 }
 
 sub insert
