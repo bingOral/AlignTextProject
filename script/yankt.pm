@@ -34,7 +34,7 @@ sub insertandupdate
 	my $flag = shift;
 	my $time = strftime("%Y-%m-%d %H:%M:%S",localtime());
 		
-	my $results = $es->search(index => 'callserv_data_english', body => {query => {match => {wavname => $wavname}}});
+	my $results = $es->search(index => $index, body => {query => {match => {wavname => $wavname}}});
 	my $flag = $results->{hits}->{total};
 
 	if($flag > 0)
@@ -67,7 +67,7 @@ sub insertandupdate
 		$third_reserved = $doc->{_source}->{third_reserved} if $third_reserved eq '';
 		$flag = $doc->{_source}->{flag} if $flag eq '';
 
-		insert($es,$wavname,$origin_audio,$url,$info,$length,$oral_score,
+		insert($es,$index,$wavname,$origin_audio,$url,$info,$length,$oral_score,
 				$first_asr_text,$first_align_text,$first_text_similarity,
 				$second_asr_text,$second_align_text,$second_text_similarity,
 				$third_asr_text,$third_align_text,$third_text_similarity,
@@ -76,7 +76,7 @@ sub insertandupdate
 	}
 	else
 	{
-		insert($es,$wavname,$origin_audio,$url,$info,$length,$oral_score,
+		insert($es,$index,$wavname,$origin_audio,$url,$info,$length,$oral_score,
 				$first_asr_text,$first_align_text,$first_text_similarity,
 				$second_asr_text,$second_align_text,$second_text_similarity,
 				$third_asr_text,$third_align_text,$third_text_similarity,
@@ -88,6 +88,7 @@ sub insertandupdate
 sub insert
 {
 	my $es = shift;
+	my $index = shift;
 
 	my $wavname = shift;
 	my $origin_audio = shift;
