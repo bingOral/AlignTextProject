@@ -7,7 +7,7 @@ use POSIX;
 use threads;
 use Try::Tiny;
 use Audio::Wav;
-use List::Util;
+use List::Util qw/min max/;
 use Word2vec::Word2vec;
 use Search::Elasticsearch;
 use script::yankt;
