@@ -6,12 +6,10 @@ use strict;
 use POSIX;
 use Search::Elasticsearch;
 
-my $index = "callserv_data_english";
-
 sub insertandupdate
 {
-	my $es = Search::Elasticsearch->new(nodes=>['localhost:9200'], cxn_pool => 'Sniff');
-	
+	my $es = shift;
+	my $index = shift;
 	my $wavname = shift;
 	my $origin_audio = shift;
 	my $url = shift;

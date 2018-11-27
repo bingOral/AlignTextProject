@@ -82,7 +82,8 @@ sub dowork
 
 			if($asr_res ne 'null' && $asr_res ne 'NULL')
 			{
-				my $results = $es->search(index => 'callserv_data_english',body => {query => {match => {wavname => $wav}}});
+				my $index = 'callserv_data_english';
+				my $results = $es->search(index => $index,body => {query => {match => {wavname => $wav}}});
 				my $flag = $results->{hits}->{total};
 
 				if($flag == 0)
@@ -103,7 +104,7 @@ sub dowork
 					print $jsonparser->encode($final)."\n\n";
 
 					#insert Elastic
-					yankt::insertandupdate($wav,$filename,$url,$info,$wavlength,-1,
+					yankt::insertandupdate($es,$index,$wav,$filename,$url,$info,$wavlength,-1,
 									$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
 									"","",0, #second
 									"","",0, #third
