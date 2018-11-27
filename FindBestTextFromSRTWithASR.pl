@@ -78,11 +78,11 @@ sub dowork
 		{
 			my $final;
 			my $asr_res = getAsrText('inner',$wav);
-			$inner_asr_res =~ s/^\s+|\s+$//g;
+			$asr_res =~ s/^\s+|\s+$//g;
 
 			if($asr_res ne 'null' && $asr_res ne 'NULL')
 			{
-				my $results = $e->search(index => 'callserv_data_english',body => {query => {match => {wavname => $wav}}});
+				my $results = $es->search(index => 'callserv_data_english',body => {query => {match => {wavname => $wav}}});
 				my $flag = $results->{hits}->{total};
 
 				if($flag == 0)
@@ -110,6 +110,11 @@ sub dowork
 									"","",0, #forth
 									0,"","", #reserved
 									'voa-special');#flag
+				}
+				else
+				{
+					print "The file ".$wav." has been processed.!\n";
+					return;
 				}
 			}
 		}

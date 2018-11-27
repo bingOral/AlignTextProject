@@ -36,7 +36,7 @@ sub insertandupdate
 	my $flag = shift;
 	my $time = strftime("%Y-%m-%d %H:%M:%S",localtime());
 		
-	my $results = $e->search(index => 'callserv_data_english', body => {query => {match => {wavname => $wavname}}});
+	my $results = $es->search(index => 'callserv_data_english', body => {query => {match => {wavname => $wavname}}});
 	my $flag = $results->{hits}->{total};
 
 	if($flag > 0)
