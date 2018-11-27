@@ -144,7 +144,7 @@ sub getSimilarity
 
 	my $final_ref_res = getSubString($res,0,$min);
 	my $final_similarity = $w2v->ComputeAvgOfWordsCosineSimilarity($asr_res,$final_ref_res);
-	if($final_similarity == 1)
+	if($final_similarity == 1 and $ref_res eq $asr_res)
 	{
 		$result->{ref} = $final_ref_res;
 		$result->{similarity} = $final_similarity;
@@ -159,7 +159,7 @@ sub getSimilarity
 			$ref_res =~ s/^\s+|\s+$//g;
 			my $similarity = $w2v->ComputeAvgOfWordsCosineSimilarity($asr_res,$ref_res);
 
-			if($similarity == 1 and length($ref_res) != length($asr_res))
+			if($similarity == 1 and $ref_res ne $asr_res)
 			{
 				my $max = max(length($ref_res), length($asr_res));
 				my $min = min(length($ref_res), length($asr_res));
