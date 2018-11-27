@@ -229,6 +229,7 @@ sub preProcessInfo
 	$res =~ s/#/\'t/g;
 	$res =~ s/&/-/g;
 	$res =~ s/~/./g;
+	$res =~ s/^\s+|\s+$//g;
 
 	$res = lc($res);
 	return $res;
