@@ -83,7 +83,7 @@ sub dowork
 			if($asr_res ne 'null' && $asr_res ne 'NULL')
 			{
 				my $index = 'callserv_data_english';
-				my $results = $es->search(index => $index,body => {query => {match => {wavname => $wav}}});
+				my $results = $es->search(index => $index,body => {query => {match => {_id => $wav}}});
 				my $flag = $results->{hits}->{total};
 
 				if($flag == 0)
@@ -114,8 +114,7 @@ sub dowork
 				}
 				else
 				{
-					print "The file ".$wav." has been processed!\n";
-					return;
+					print "The file ".$wav." has been processed !\n\n";
 				}
 			}
 		}
