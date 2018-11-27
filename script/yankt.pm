@@ -35,9 +35,9 @@ sub insertandupdate
 	my $time = strftime("%Y-%m-%d %H:%M:%S",localtime());
 		
 	my $results = $es->search(index => $index, body => {query => {match => {_id => $wavname}}});
-	my $flag = $results->{hits}->{total};
+	my $flags = $results->{hits}->{total};
 
-	if($flag > 0)
+	if($flags > 0)
 	{	
 		my $doc = $es->get(
 			index   => $index,
