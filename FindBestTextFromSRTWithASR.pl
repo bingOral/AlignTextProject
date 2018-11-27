@@ -148,6 +148,7 @@ sub getSimilarity
 		for(my $i = $min; $i <= $max; $i++)
 		{
 			my $ref_res = getSubString($res,$k,$i);
+			$ref_res =~ s/^\s+|\s+$//g;
 			my $similarity = $w2v->ComputeAvgOfWordsCosineSimilarity($asr_res,$ref_res);
 			if($final_similarity < $similarity)
 			{
