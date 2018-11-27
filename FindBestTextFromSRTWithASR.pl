@@ -143,8 +143,9 @@ sub getSimilarity
 	}
 
 	my $final_ref_res = getSubString($res,0,$min);
+	$final_ref_res =~ s/^\s+|\s+$//g;
 	my $final_similarity = $w2v->ComputeAvgOfWordsCosineSimilarity($asr_res,$final_ref_res);
-	if($final_similarity == 1 and $ref_res eq $asr_res)
+	if($final_similarity == 1 and $final_ref_res eq $asr_res)
 	{
 		$result->{ref} = $final_ref_res;
 		$result->{similarity} = $final_similarity;
