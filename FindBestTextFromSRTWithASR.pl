@@ -7,13 +7,14 @@ use POSIX;
 use threads;
 use Try::Tiny;
 use Audio::Wav;
+use List::Util;
 use Word2vec::Word2vec;
 use Search::Elasticsearch;
 use script::yankt;
 
 if(scalar(@ARGV) != 2)
 {
-	print "Usage : perl FindBestTextFromSRTWithASR.pl input threadnum\n";		
+	print "Usage : perl $0 input threadnum\n";		
 	exit;
 }
 
@@ -143,6 +144,13 @@ sub getSimilarity
 
 	my $final_ref_res = getSubString($res,0,$min);
 	my $final_similarity = $w2v->ComputeAvgOfWordsCosineSimilarity($asr_res,$final_ref_res);
+	if($final_similarity == 1)
+	{
+		$result->{ref} = $final_ref_res;
+		$result->{similarity} = $final_similarity;
+		return $result;
+	}
+
 	for(my $k = 0; $k <= ($res_nums - $max); $k++)
 	{
 		for(my $i = $min; $i <= $max; $i++)
@@ -150,10 +158,25 @@ sub getSimilarity
 			my $ref_res = getSubString($res,$k,$i);
 			$ref_res =~ s/^\s+|\s+$//g;
 			my $similarity = $w2v->ComputeAvgOfWordsCosineSimilarity($asr_res,$ref_res);
+
+			if($similarity == 1 and length($ref_res) != length($asr_res))
+			{
+				my $max = max(length($ref_res), length($asr_res));
+				my $min = min(length($ref_res), length($asr_res));
+				$similarity = sprintf "%0.3f",($min/$max);
+			}
+
 			if($final_similarity < $similarity)
 			{
 				$final_ref_res = $ref_res;
 				$final_similarity = $similarity;
+			}
+
+			if($final_similarity == 1)
+			{
+				$result->{ref} = $final_ref_res;
+				$result->{similarity} = $final_similarity;
+				return $result;
 			}
 		}
 	}
