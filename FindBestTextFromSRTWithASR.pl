@@ -114,7 +114,7 @@ sub dowork
 				}
 				else
 				{
-					print "The file ".$wav." has been processed.!\n";
+					print "The file ".$wav." has been processed!\n";
 					return;
 				}
 			}
