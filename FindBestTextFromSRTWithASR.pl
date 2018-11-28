@@ -2,7 +2,6 @@
 
 use strict;
 use JSON;
-use DBI;
 use POSIX;
 use threads;
 use Try::Tiny;
@@ -89,7 +88,7 @@ sub dowork
 			if($asr_res and $flag == 0)
 			{
 				my $result;
-				my $wavlength  = qx(perl script/getWavLength.pl $wav);
+				my $wavlength = qx(perl script/getWavLength.pl $wav);
 
 				if(index($info,$asr_res) >= 0)
 				{
