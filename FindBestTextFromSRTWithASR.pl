@@ -10,7 +10,8 @@ use Audio::Wav;
 use List::Util qw/min max/;
 use Word2vec::Word2vec;
 use Search::Elasticsearch;
-use script::yankt;
+use script::Elastic;
+use script::CallOuterServer qw/getInnerEnglishAsrText/;
 
 if(scalar(@ARGV) != 2)
 {
@@ -30,11 +31,12 @@ sub Main
 	my $w2v = Word2vec::Word2vec->new();
 	$w2v->ReadTrainedVectorDataFromFile("data/text8.bin");
 	my $es = Search::Elasticsearch->new(nodes=>['localhost:9200'], cxn_pool => 'Sniff');
+	my $inner_asr_res = OuterServer::getInnerEnglishAsrText();
 
 	my @threads;
 	foreach my $key (keys %$group)
 	{
-		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es);
+		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es,$inner_asr_res);
 		push @threads,$thread;
 	}
 		
@@ -64,6 +66,7 @@ sub dowork
 	my $ref = shift;
 	my $w2v = shift;
 	my $es  = shift;
+	my $inner_asr_res =shift;
 
 	foreach my $row (@$ref)
 	{
@@ -78,8 +81,7 @@ sub dowork
 		foreach my $wav (@$wavs)
 		{
 			my $final;
-			my $asr_res = getAsrText('inner',$wav);
-			$asr_res =~ s/^\s+|\s+$//g;
+			my $asr_res = $inner_asr_res->{$wav};
 
 			if($asr_res ne 'null' && $asr_res ne 'NULL')
 			{
@@ -105,7 +107,7 @@ sub dowork
 					print $jsonparser->encode($final)."\n\n";
 
 					#insert Elastic
-					yankt::insertandupdate($es,$index,$wav,$filename,$url,$info,$wavlength,-1,
+					elastic::insertandupdate($es,$index,$wav,$filename,$url,$info,$wavlength,-1,
 									$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
 									"","",0, #second
 									"","",0, #third
@@ -185,23 +187,6 @@ sub getSimilarity
 	$result->{ref} = $final_ref_res;
 	$result->{similarity} = $final_similarity;
 	return $result;
-}
-
-sub getAsrText
-{
-	my $asr_engine = shift;
-	my $wav = shift;
-
-	if($asr_engine eq 'baidu')
-	{
-		$asr_engine = "./script/TestBaiduASR.py";
-	}
-	elsif($asr_engine eq 'inner')
-	{
-		$asr_engine = "./script/TestCallServASR.py";
-	}
-	my $call_asr = qx(python $asr_engine $wav);
-	return preProcessInfo($call_asr);
 }
 
 sub getSubString
