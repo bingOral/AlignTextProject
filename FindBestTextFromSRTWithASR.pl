@@ -88,7 +88,7 @@ sub dowork
 			if($asr_res and $flag == 0)
 			{
 				my $result;
-				my $wavlength = qx(perl script/getWavLength.pl $wav);
+				#my $wavlength = qx(perl script/getWavLength.pl $wav);
 
 				if(index($info,$asr_res) >= 0)
 				{
@@ -102,7 +102,7 @@ sub dowork
 
 				$final->{wav} = $wav;
 				$final->{url} = $url;
-				$final->{length} = $wavlength;
+				#$final->{length} = $wavlength;
 				$final->{asr_text} = $asr_res;
 				$final->{ref_text} = $result->{ref};
 				$final->{text_similarity} = $result->{similarity};
@@ -112,7 +112,7 @@ sub dowork
 				print $jsonparser->encode($final)."\n\n";
 				
 				#insert Elastic
-				elastic::insertandupdate($es,$index,$wav,$filename,$url,$info,$wavlength,-1,
+				elastic::insertandupdate($es,$index,$wav,$filename,$url,$info,0,-1,
 								$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
 								"","",0, #second
 								"","",0, #third
