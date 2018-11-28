@@ -29,7 +29,7 @@ sub Main
 	my $group = div(\@tasks,$threadnum);
 	my $w2v = Word2vec::Word2vec->new();
 	$w2v->ReadTrainedVectorDataFromFile("data/text8.bin");
-	my $es = Search::Elasticsearch->new(nodes=>['localhost:9200'], cxn_pool => 'Sniff');
+	my $es = Search::Elasticsearch->new(nodes=>['192.168.1.20:9200'], cxn_pool => 'Sniff');
 	my $inner_asr_res = OuterServer::getInnerEnglishAsrText();
 
 	my @threads;
