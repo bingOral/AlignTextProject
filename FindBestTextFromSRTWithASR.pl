@@ -82,43 +82,48 @@ sub dowork
 		{
 			my $final;
 			my $asr_res = $inner_asr_res->{$wav};
+			my $index = 'callserv_data_english';
+			my $results = $es->search(index => $index,body => {query => {match => {_id => $wav}}});
+			my $flag = $results->{hits}->{total};
 
-			if($asr_res ne 'null' && $asr_res ne 'NULL')
+			if($asr_res and $flag == 0)
 			{
-				my $index = 'callserv_data_english';
-				my $results = $es->search(index => $index,body => {query => {match => {_id => $wav}}});
-				my $flag = $results->{hits}->{total};
+				my $result;
+				my $wavlength  = qx(perl script/getWavLength.pl $wav);
 
-				if($flag == 0)
+				if(index($info,$asr_res) >= 0)
 				{
-					my $result = getSimilarity($asr_res,$info,$w2v);
-					my $wavlength  = qx(perl script/getWavLength.pl $wav);
-
-					$final->{wav} = $wav;
-					$final->{url} = $url;
-					$final->{length} = $wavlength;
-
-					$final->{asr_text} = $asr_res;
-					$final->{ref_text} = $result->{ref};
-					$final->{text_similarity} = $result->{similarity};
-
-					#print
-					print "Process audio file : ".$wav."\n"."$wav 's asr text : ".$asr_res."\n"."$wav 's ref text : ".$result->{ref}."\n";
-					print $jsonparser->encode($final)."\n\n";
-
-					#insert Elastic
-					elastic::insertandupdate($es,$index,$wav,$filename,$url,$info,$wavlength,-1,
-									$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
-									"","",0, #second
-									"","",0, #third
-									"","",0, #forth
-									0,"","", #reserved
-									'voa-special');#flag
+					$result->{ref} = $asr_res;
+					$result->{similarity} = 1;
 				}
 				else
 				{
-					print "The file ".$wav." has been processed !\n\n";
+					$result = getSimilarity($asr_res,$info,$w2v);
 				}
+
+				$final->{wav} = $wav;
+				$final->{url} = $url;
+				$final->{length} = $wavlength;
+				$final->{asr_text} = $asr_res;
+				$final->{ref_text} = $result->{ref};
+				$final->{text_similarity} = $result->{similarity};
+				
+				#print
+				print "Process audio file : ".$wav."\n"."$wav 's asr text : ".$asr_res."\n"."$wav 's ref text : ".$result->{ref}."\n";
+				print $jsonparser->encode($final)."\n\n";
+				
+				#insert Elastic
+				elastic::insertandupdate($es,$index,$wav,$filename,$url,$info,$wavlength,-1,
+								$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
+								"","",0, #second
+								"","",0, #third
+								"","",0, #forth
+								0,"","", #reserved
+								'voa-special');#flag
+			}
+			else
+			{
+				print "The file ".$wav." can't processed !\n\n";
 			}
 		}
 	}
