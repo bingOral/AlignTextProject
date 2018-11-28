@@ -7,7 +7,7 @@ sub getInnerEnglishAsrText
 {
 	my $res;
 	my $config = Config::Tiny->new;
-	$config = Config::Tiny->read('../config/config.ini', 'utf8');
+	$config = Config::Tiny->read('config/config.ini', 'utf8');
 	my $filename = $config->{align_text_config}->{inner_asr_text_file};
 	open(IN,$filename)||die("Please config the filename.");
 	while (my $row_in = <IN>) 
