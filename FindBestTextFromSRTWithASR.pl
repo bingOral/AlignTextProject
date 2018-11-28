@@ -123,7 +123,7 @@ sub dowork
 			}
 			else
 			{
-				print "The file ".$wav." can't processed !\n\n";
+				print "The file ".$wav." can't be processed !\n\n";
 			}
 		}
 	}
