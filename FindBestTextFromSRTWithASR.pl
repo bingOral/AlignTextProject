@@ -31,11 +31,12 @@ sub Main
 	$w2v->ReadTrainedVectorDataFromFile("data/text8.bin");
 	my $es = Search::Elasticsearch->new(nodes=>['192.168.1.20:9200'], cxn_pool => 'Sniff');
 	my $inner_asr_res = OuterServer::getInnerEnglishAsrText();
+	my $wavlength_info = getWavLength('');
 
 	my @threads;
 	foreach my $key (keys %$group)
 	{
-		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es,$inner_asr_res);
+		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es,$inner_asr_res,$wavlength_info);
 		push @threads,$thread;
 	}
 		
@@ -66,6 +67,7 @@ sub dowork
 	my $w2v = shift;
 	my $es  = shift;
 	my $inner_asr_res =shift;
+	my $wavlength_info =shift;
 
 	foreach my $row (@$ref)
 	{
@@ -88,7 +90,7 @@ sub dowork
 			if($asr_res and $flag == 0)
 			{
 				my $result;
-				#my $wavlength = qx(perl script/getWavLength.pl $wav);
+				my $wavlength = $wavlength_info->{$wav};
 
 				if(index($info,$asr_res) >= 0)
 				{
@@ -102,7 +104,7 @@ sub dowork
 
 				$final->{wav} = $wav;
 				$final->{url} = $url;
-				#$final->{length} = $wavlength;
+				$final->{length} = $wavlength;
 				$final->{asr_text} = $asr_res;
 				$final->{ref_text} = $result->{ref};
 				$final->{text_similarity} = $result->{similarity};
@@ -126,6 +128,24 @@ sub dowork
 			}
 		}
 	}
+}
+
+sub getWavLength
+{
+	my $file = shift;
+	my $res;
+
+	open(IN,$file)||die("Error!\n");
+	while(my $row = <IN>)
+	{
+		my @arr = split(/\|/,$row,2);
+		my $filename = $arr[0];
+		my $length = $arr[1];
+		$filename =~ s/^\s+|\s+$//g;
+		$length =~ s/^\s+|\s+$//g;
+		$res->{$filename} = $length;
+	}
+	return $res;
 }
 
 sub getSimilarity
