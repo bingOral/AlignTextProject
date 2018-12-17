@@ -101,7 +101,7 @@ sub dowork
 			#$asr_res = $inner_asr_res->{$wav};
 			#$wavlength = $wavlength_info->{$wav};
 
-			my $flag = getWavExiststsStatus($index,$wav,'second_text_similarity');
+			my $flag = getWavExiststsStatus($es,$index,$wav,'second_text_similarity');
 
 			if($flag == 0)
 			{
@@ -152,6 +152,7 @@ sub dowork
 
 sub getWavNotExiststsStatus
 {
+	my $es = shift;
 	my $index = shift;
 	my $wav = shift;
 
@@ -162,11 +163,12 @@ sub getWavNotExiststsStatus
 
 sub getWavExiststsStatus
 {
+	my $es = shift;
 	my $index = shift;
 	my $wav = shift;
 	my $field = shift;
 	
-	my $flag = getWavNotExiststsStatus($index,$wav);
+	my $flag = getWavNotExiststsStatus($es,$index,$wav);
 	if($flag > 0)
 	{
 		my $doc = $es->get(index => $index, type => 'data', id => $wav);
@@ -179,6 +181,7 @@ sub getWavExiststsStatus
 		{
 			return 0;
 		}
+	}
 	else
 	{
 		return 0;
