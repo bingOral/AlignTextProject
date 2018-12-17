@@ -5,7 +5,6 @@ use JSON;
 use POSIX;
 use threads;
 use Try::Tiny;
-use Audio::Wav;
 use List::Util qw/min max/;
 use Word2vec::Word2vec;
 use Search::Elasticsearch;
@@ -84,20 +83,35 @@ sub dowork
 		foreach my $wav (@$wavs)
 		{
 			my $final;
+			my $asr_res;
+			my $wavlength;
 
-			my $doc = $es->get(index => 'callserv_call_nuance_en', type => 'data', id => $wav);
-			my $asr_res = $doc->{_source}->{text};
-			my $wavlength = $doc->{_source}->{length};
-			#my $asr_res = $inner_asr_res->{$wav};
-			#my $wavlength = $wavlength_info->{$wav};
+			try
+			{
+				my $doc = $es->get(index => 'callserv_call_nuance_en', type => 'data', id => $wav);
+				$asr_res = $doc->{_source}->{text};
+				$wavlength = $doc->{_source}->{length};
+			}
+			catch
+			{
+				$asr_res = "NULL";
+				$wavlength = 0;
+			};
 
-			my $results = $es->search(index => $index, body => {query => {match => {_id => $wav}}});
-			my $flag = $results->{hits}->{total};
+			#$asr_res = $inner_asr_res->{$wav};
+			#$wavlength = $wavlength_info->{$wav};
 
-			if($asr_res and $flag == 0)
+			my $flag = getWavExiststsStatus($index,$wav,'second_text_similarity');
+
+			if($flag == 0)
 			{
 				my $result;
-				if(index($info,$asr_res) >= 0)
+				if($asr_res eq 'NULL')
+				{
+					$result->{ref} = $asr_res;
+					$result->{similarity} = 0;
+				}
+				elsif(index($info,$asr_res) >= 0)
 				{
 					$result->{ref} = $asr_res;
 					$result->{similarity} = 1;
@@ -130,9 +144,44 @@ sub dowork
 			}
 			else
 			{
-				print "The file ".$wav." can't be processed !\n\n";
+				print "The file ".$wav." has been processed !\n\n";
 			}
 		}
+	}
+}
+
+sub getWavNotExiststsStatus
+{
+	my $index = shift;
+	my $wav = shift;
+
+	my $results = $es->search(index => $index, body => {query => {match => {_id => $wav}}});
+	my $flag = $results->{hits}->{total};
+	return $flag;
+}
+
+sub getWavExiststsStatus
+{
+	my $index = shift;
+	my $wav = shift;
+	my $field = shift;
+	
+	my $flag = getWavNotExiststsStatus($index,$wav);
+	if($flag > 0)
+	{
+		my $doc = $es->get(index => $index, type => 'data', id => $wav);
+		my $text = $doc->{_source}->{$field};
+		if($text)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	else
+	{
+		return 0;
 	}
 }
 
