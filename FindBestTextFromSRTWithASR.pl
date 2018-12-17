@@ -30,13 +30,14 @@ sub Main
 	my $w2v = Word2vec::Word2vec->new();
 	$w2v->ReadTrainedVectorDataFromFile("data/text8.bin");
 	my $es = Search::Elasticsearch->new(nodes=>['192.168.1.20:9200'], cxn_pool => 'Sniff');
-	my $inner_asr_res = OuterServer::getInnerEnglishAsrText();
-	my $wavlength_info = getWavLength('');
+	#my $inner_asr_res = OuterServer::getInnerEnglishAsrText();
+	#my $wavlength_info = getWavLength('');
 
 	my @threads;
 	foreach my $key (keys %$group)
 	{
-		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es,$inner_asr_res,$wavlength_info);
+		#my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es,$inner_asr_res,$wavlength_info);
+		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es);
 		push @threads,$thread;
 	}
 		
@@ -66,8 +67,8 @@ sub dowork
 	my $ref = shift;
 	my $w2v = shift;
 	my $es  = shift;
-	my $inner_asr_res =shift;
-	my $wavlength_info =shift;
+	#my $inner_asr_res =shift;
+	#my $wavlength_info =shift;
 
 	foreach my $row (@$ref)
 	{
@@ -82,16 +83,19 @@ sub dowork
 		foreach my $wav (@$wavs)
 		{
 			my $final;
-			my $asr_res = $inner_asr_res->{$wav};
-			my $index = 'callserv_data_english';
-			my $results = $es->search(index => $index,body => {query => {match => {_id => $wav}}});
+
+			my $doc = $es->get(index => 'callserv_call_nuance_en',type => 'data',id => $wav);
+			my $asr_res = $doc->{_source}->{text};
+			my $wavlength = $doc->{_source}->{length};
+			#my $asr_res = $inner_asr_res->{$wav};
+			#my $wavlength = $wavlength_info->{$wav};
+
+			my $results = $es->search(index => 'callserv_data_english',body => {query => {match => {_id => $wav}}});
 			my $flag = $results->{hits}->{total};
 
 			if($asr_res and $flag == 0)
 			{
 				my $result;
-				my $wavlength = $wavlength_info->{$wav};
-
 				if(index($info,$asr_res) >= 0)
 				{
 					$result->{ref} = $asr_res;
@@ -114,9 +118,10 @@ sub dowork
 				print $jsonparser->encode($final)."\n\n";
 				
 				#insert Elastic
-				elastic::insertandupdate($es,$index,$wav,$filename,$url,$info,0,-1,
-								$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
-								"","",0, #second
+				elastic::insertandupdate($es,$index,$wav,$filename,$url,$info,$wavlength,-1,
+								#$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
+								"","",0, #first
+								$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #second
 								"","",0, #third
 								"","",0, #forth
 								0,"","", #reserved
