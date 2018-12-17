@@ -89,7 +89,8 @@ sub dowork
 			try
 			{
 				my $doc = $es->get(index => 'callserv_call_nuance_en', type => 'data', id => $wav);
-				$asr_res = lc($doc->{_source}->{text});
+				$asr_res = $doc->{_source}->{text};
+				$asr_res = lc($asr_res);
 				$asr_res =~ s/^\s+|\s+$//g;
 				$wavlength = $doc->{_source}->{length};
 			}
