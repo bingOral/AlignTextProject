@@ -89,7 +89,8 @@ sub dowork
 			try
 			{
 				my $doc = $es->get(index => 'callserv_call_nuance_en', type => 'data', id => $wav);
-				$asr_res = $doc->{_source}->{text};
+				$asr_res = lc($doc->{_source}->{text});
+				$asr_res =~ s/^\s+|\s+$//g
 				$wavlength = $doc->{_source}->{length};
 			}
 			catch
@@ -102,6 +103,7 @@ sub dowork
 			#$wavlength = $wavlength_info->{$wav};
 
 			my $flag = getWavExiststsStatus($es,$index,$wav,'second_text_similarity');
+			$flag = 0;
 
 			if($flag == 0)
 			{
