@@ -67,6 +67,7 @@ sub dowork
 	my $ref = shift;
 	my $w2v = shift;
 	my $es  = shift;
+	my $index = 'callserv_data_english';
 	#my $inner_asr_res =shift;
 	#my $wavlength_info =shift;
 
@@ -84,13 +85,13 @@ sub dowork
 		{
 			my $final;
 
-			my $doc = $es->get(index => 'callserv_call_nuance_en',type => 'data',id => $wav);
+			my $doc = $es->get(index => 'callserv_call_nuance_en', type => 'data', id => $wav);
 			my $asr_res = $doc->{_source}->{text};
 			my $wavlength = $doc->{_source}->{length};
 			#my $asr_res = $inner_asr_res->{$wav};
 			#my $wavlength = $wavlength_info->{$wav};
 
-			my $results = $es->search(index => 'callserv_data_english',body => {query => {match => {_id => $wav}}});
+			my $results = $es->search(index => $index, body => {query => {match => {_id => $wav}}});
 			my $flag = $results->{hits}->{total};
 
 			if($asr_res and $flag == 0)
