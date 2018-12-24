@@ -82,6 +82,7 @@ sub dowork
 		
 		foreach my $wav (@$wavs)
 		{
+			$wav =~ s/%//g;
 			my $final;
 			my $asr_res;
 			my $wavlength;
@@ -102,7 +103,7 @@ sub dowork
 			#$wavlength = $wavlength_info->{$wav};
 
 			my $flag = getWavExiststsStatus($es,$index,$wav,'second_text_similarity');
-			$flag = 0;
+			#$flag = 0;
 
 			if($flag == 0)
 			{
