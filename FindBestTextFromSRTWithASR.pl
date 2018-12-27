@@ -4,6 +4,7 @@ use strict;
 use JSON;
 use threads;
 use Try::Tiny;
+use Config::Tiny;
 use List::Util qw/min max/;
 use Word2vec::Word2vec;
 use Search::Elasticsearch;
@@ -24,14 +25,16 @@ sub Main
 	my $threadnum = $ARGV[1];
 	my @tasks = <IN>;
 	my $group = div(\@tasks,$threadnum);
+
 	my $w2v = Word2vec::Word2vec->new();
 	$w2v->ReadTrainedVectorDataFromFile("data/text8.bin");
 	my $es = Search::Elasticsearch->new(nodes=>['192.168.1.20:9200'], cxn_pool => 'Sniff');
+	my $env = init();
 
 	my @threads;
 	foreach my $key (keys %$group)
 	{
-		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es);
+		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es,$env);
 		push @threads,$thread;
 	}
 		
@@ -39,6 +42,23 @@ sub Main
 	{
 		$_->join();
 	}
+}
+
+sub init
+{
+	my $config = Config::Tiny->new;
+	$config = Config::Tiny->read('config/config.ini', 'utf8');
+	
+	my $res;
+
+	$res->{dest_align_index} = $config->{align_text_config}->{dest_align_index};
+	$res->{nuance_asr_text_index} = $config->{align_text_config}->{nuance_asr_text_index};
+	$res->{uns_asr_text_index} = $config->{align_text_config}->{uns_asr_text_index};
+	$res->{baidu_asr_text_index} = $config->{align_text_config}->{baidu_asr_text_index};
+	$res->{iFly_asr_text_index} = $config->{align_text_config}->{iFly_asr_text_index};
+	$res->{uns_oral_score_index} = $config->{align_text_config}->{uns_oral_score_index};
+
+	return $res;
 }
 
 sub div
@@ -61,7 +81,9 @@ sub dowork
 	my $ref = shift;
 	my $w2v = shift;
 	my $es  = shift;
-	my $index = 'callserv_data_english';
+	my $env = shift;
+
+	my $index = $env->{dest_align_index};
 
 	foreach my $row (@$ref)
 	{
@@ -82,7 +104,8 @@ sub dowork
 
 			try
 			{
-				my $doc = $es->get(index => 'callserv_call_nuance_en', type => 'data', id => $wav);
+				my $nuance_asr_text_index = $env->{nuance_asr_text_index}
+				my $doc = $es->get(index => $nuance_asr_text_index, type => 'data', id => $wav);
 				$asr_res = preProcessInfo($doc->{_source}->{text});
 				$wavlength = $doc->{_source}->{length};
 			}
