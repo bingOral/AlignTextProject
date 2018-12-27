@@ -2,14 +2,12 @@
 
 use strict;
 use JSON;
-use POSIX;
 use threads;
 use Try::Tiny;
 use List::Util qw/min max/;
 use Word2vec::Word2vec;
 use Search::Elasticsearch;
 use script::Elastic;
-use script::CallOuterServer qw/getInnerEnglishAsrText/;
 
 if(scalar(@ARGV) != 2)
 {
@@ -29,13 +27,10 @@ sub Main
 	my $w2v = Word2vec::Word2vec->new();
 	$w2v->ReadTrainedVectorDataFromFile("data/text8.bin");
 	my $es = Search::Elasticsearch->new(nodes=>['192.168.1.20:9200'], cxn_pool => 'Sniff');
-	#my $inner_asr_res = OuterServer::getInnerEnglishAsrText();
-	#my $wavlength_info = getWavLength('');
 
 	my @threads;
 	foreach my $key (keys %$group)
 	{
-		#my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es,$inner_asr_res,$wavlength_info);
 		my $thread = threads->create(\&dowork,$group->{$key},$w2v,$es);
 		push @threads,$thread;
 	}
@@ -67,8 +62,6 @@ sub dowork
 	my $w2v = shift;
 	my $es  = shift;
 	my $index = 'callserv_data_english';
-	#my $inner_asr_res =shift;
-	#my $wavlength_info =shift;
 
 	foreach my $row (@$ref)
 	{
@@ -99,11 +92,8 @@ sub dowork
 				$wavlength = 0;
 			};
 
-			#$asr_res = $inner_asr_res->{$wav};
-			#$wavlength = $wavlength_info->{$wav};
-
 			my $flag = getWavExiststsStatus($es,$index,$wav,'second_text_similarity');
-			#$flag = 0;
+			#my $flag = 0;
 
 			if($flag == 0)
 			{
@@ -133,16 +123,23 @@ sub dowork
 				#print
 				print "Process audio file : ".$wav."\n"."$wav 's asr text : ".$asr_res."\n"."$wav 's ref text : ".$result->{ref}."\n";
 				print $jsonparser->encode($final)."\n\n";
-				
-				#insert Elastic
-				elastic::insertandupdate($es,$index,$wav,$filename,$url,$info,$wavlength,-1,
-								#$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #first
-								"","",0, #first
-								$final->{asr_text},$final->{ref_text},$final->{text_similarity}, #second
-								"","",0, #third
-								"","",0, #forth
-								0,"","", #reserved
-								'voa-special');#flag
+
+				my $data;
+				$data->{es} = $es;
+				$data->{index} = $index;
+				$data->{wavname} = $wav;
+				$data->{filename} = $filename;
+				$data->{url} = $url;
+				$data->{info} = $info;
+				$data->{length} = $wavlength;
+				$data->{oral_score} = -1;
+
+				$data->{second_asr_text} = $final->{asr_text};
+				$data->{second_align_text} = $final->{ref_text};
+				$data->{second_text_similarity} = $final->{text_similarity};
+				$data->{flag} = 'voa-special';
+
+				elastic::insertDB($data);
 			}
 			else
 			{
@@ -188,24 +185,6 @@ sub getWavExiststsStatus
 	{
 		return 0;
 	}
-}
-
-sub getWavLength
-{
-	my $file = shift;
-	my $res;
-
-	open(IN,$file)||die("Error!\n");
-	while(my $row = <IN>)
-	{
-		my @arr = split(/\|/,$row,2);
-		my $filename = $arr[0];
-		my $length = $arr[1];
-		$filename =~ s/^\s+|\s+$//g;
-		$length =~ s/^\s+|\s+$//g;
-		$res->{$filename} = $length;
-	}
-	return $res;
 }
 
 sub getSimilarity
