@@ -104,7 +104,7 @@ sub dowork
 
 			try
 			{
-				my $nuance_asr_text_index = $env->{nuance_asr_text_index}
+				my $nuance_asr_text_index = $env->{nuance_asr_text_index};
 				my $doc = $es->get(index => $nuance_asr_text_index, type => 'data', id => $wav);
 				$asr_res = preProcessInfo($doc->{_source}->{text});
 				$wavlength = $doc->{_source}->{length};
