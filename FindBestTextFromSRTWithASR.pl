@@ -57,6 +57,7 @@ sub init
 	$res->{baidu_asr_text_index} = $config->{align_text_config}->{baidu_asr_text_index};
 	$res->{iFly_asr_text_index} = $config->{align_text_config}->{iFly_asr_text_index};
 	$res->{uns_oral_score_index} = $config->{align_text_config}->{uns_oral_score_index};
+	$res->{elastic_insert_flag} = $config->{align_text_config}->{elastic_insert_flag};
 
 	return $res;
 }
@@ -84,6 +85,7 @@ sub dowork
 	my $env = shift;
 
 	my $index = $env->{dest_align_index};
+	my $status = $env->{elastic_insert_flag};
 
 	foreach my $row (@$ref)
 	{
@@ -115,8 +117,15 @@ sub dowork
 				$wavlength = 0;
 			};
 
-			my $flag = getWavExiststsStatus($es,$index,$wav,'second_text_similarity');
-			#my $flag = 0;
+			my $flag;
+			if($status eq 'true')
+			{
+				$flag = 0;	
+			}
+			else
+			{
+				$flag = getWavExiststsStatus($es,$index,$wav,'second_text_similarity');
+			}
 
 			if($flag == 0)
 			{
