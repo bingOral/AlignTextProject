@@ -58,6 +58,7 @@ sub init
 	$res->{iFly_asr_text_index} = $config->{align_text_config}->{iFly_asr_text_index};
 	$res->{uns_oral_score_index} = $config->{align_text_config}->{uns_oral_score_index};
 	$res->{elastic_insert_flag} = $config->{align_text_config}->{elastic_insert_flag};
+	$res->{flag} = $config->{align_text_config}->{flag};
 
 	return $res;
 }
@@ -169,7 +170,7 @@ sub dowork
 				$data->{second_asr_text} = $final->{asr_text};
 				$data->{second_align_text} = $final->{ref_text};
 				$data->{second_text_similarity} = $final->{text_similarity};
-				$data->{flag} = 'voa-special';
+				$data->{flag} = $env->{flag};
 
 				elastic::insertDB($data);
 			}
