@@ -280,6 +280,7 @@ sub getSimilarity
 		}
 	}
 
+	$final_similarity = 0 unless $final_similarity;
 	$result->{ref} = $final_ref_res;
 	$result->{similarity} = $final_similarity;
 	return $result;
